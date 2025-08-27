@@ -1,5 +1,5 @@
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,7 +31,6 @@ class RegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # username используем как email, чтобы поддерживать вход по email
         user = User.objects.create_user(
             username=email, first_name=name, email=email, password=password
         )
@@ -48,10 +47,10 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     """Логин по email (или username, если он совпадает с email)."""
+
     def post(self, request):
-        # Принимаем либо email, либо username для совместимости
         email = request.data.get("email")
-        username = request.data.get("username")  # на случай старого фронта
+        username = request.data.get("username")
         password = request.data.get("password")
 
         if not (email or username) or not password:
@@ -60,7 +59,6 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Если пришёл email — используем его как username (мы его так и сохраняем при регистрации)
         login_name = email or username
 
         user = authenticate(username=login_name, password=password)
