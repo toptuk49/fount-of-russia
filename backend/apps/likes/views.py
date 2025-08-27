@@ -1,9 +1,11 @@
-from rest_framework import status, permissions, views
-from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Count, Q
+from rest_framework import permissions, status, views
+from rest_framework.response import Response
+
 from .models import Like
 from .serializers import LikeStateSerializer
+
 
 def counts_for(slug: str):
     agg = Like.objects.filter(page_slug=slug).aggregate(
@@ -11,6 +13,7 @@ def counts_for(slug: str):
         dislikes=Count("id", filter=Q(is_like=False)),
     )
     return {"likes": agg["likes"] or 0, "dislikes": agg["dislikes"] or 0}
+
 
 class LikeDetailView(views.APIView):
     permission_classes = [permissions.AllowAny]
@@ -27,10 +30,16 @@ class LikeDetailView(views.APIView):
 
     def post(self, request, page_slug: str):
         if not request.user.is_authenticated:
-            return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"detail": "Authentication required"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
         action = (request.data or {}).get("action")
         if action not in ("like", "dislike"):
-            return Response({"detail": "action must be like|dislike"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "action must be like|dislike"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         is_like = action == "like"
         with transaction.atomic():
             obj, created = Like.objects.select_for_update().get_or_create(
@@ -49,6 +58,7 @@ class LikeDetailView(views.APIView):
             my_vote = "like" if vote.is_like else "dislike"
         from asgiref.sync import async_to_sync
         from channels.layers import get_channel_layer
+
         async_to_sync(get_channel_layer().group_send)(
             f"likes-{page_slug}", {"type": "likes.update", **c}
         )

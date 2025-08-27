@@ -14,15 +14,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Like
 
 
-class TestConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.accept()
-        await self.send(text_data=json.dumps({"message": "Hello from WS!"}))
-
-    async def receive(self, text_data):
-        await self.send(text_data=json.dumps({"echo": text_data}))
-
-
 def counts_for_sync(slug: str):
     agg = Like.objects.filter(page_slug=slug).aggregate(
         likes=Count("id", filter=Q(is_like=True)),
@@ -36,20 +27,12 @@ class LikeConsumer(AsyncJsonWebsocketConsumer):
         self.page_slug = self.scope["url_route"]["kwargs"]["page_slug"]
         self.group_name = f"likes-{self.page_slug}"
 
-        # Читаем токен из query string
-        query_params = parse_qs(self.scope["query_string"].decode())
-        token = query_params.get("token", [None])[0]
-
-        print(f"[DEBUG] WebSocket connect: page_slug={self.page_slug}, token={token}")
-
-        # Аутентификация пользователя по JWT
-        user = await self._authenticate(token) if token else AnonymousUser()
+        user = self.scope["user"]
         print(
-            f"[DEBUG] Authenticated user: {user} (is_authenticated={getattr(user, 'is_authenticated', False)})"
+            f"[DEBUG] WebSocket connect: page_slug={self.page_slug}, user={user} (authenticated: {user.is_authenticated})"
         )
 
-        self.scope["user"] = user
-        if not getattr(user, "is_authenticated", False):
+        if not user.is_authenticated:
             print("[DEBUG] Closing WebSocket: user not authenticated")
             await self.close(code=4401)
             return
@@ -108,10 +91,22 @@ class LikeConsumer(AsyncJsonWebsocketConsumer):
     @sync_to_async
     def _authenticate(self, token):
         try:
-            jwt_auth = JWTAuthentication()
-            validated = jwt_auth.get_validated_token(token)
-            user = jwt_auth.get_user(validated)
-            return user
+            from django.contrib.auth import get_user_model
+            from django.contrib.auth.models import AnonymousUser
+            from rest_framework_simplejwt.tokens import AccessToken
+
+            User = get_user_model()
+
+            access_token = AccessToken(token)
+            user_id = access_token["user_id"]
+
+            try:
+                user = User.objects.get(id=user_id)
+                return user
+            except User.DoesNotExist:
+                print(f"[DEBUG] User with id {user_id} does not exist")
+                return AnonymousUser()
+
         except Exception as e:
             print(f"[DEBUG] JWT authentication failed: {e}")
             return AnonymousUser()

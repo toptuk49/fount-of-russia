@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 type Props = { slug?: string };
 
 export default function LikeDislike({ slug }: Props) {
-  const { token } = useAuth();
+  const { token, refreshAccessToken } = useAuth();
 
   const pageSlug =
     (slug || window.location.pathname.replaceAll("/", "-") || "home").replace(
@@ -17,37 +17,75 @@ export default function LikeDislike({ slug }: Props) {
   const [myVote, setMyVote] = useState<"like" | "dislike" | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
+  const updateLikesData = (data: any) => {
+    if (typeof data.likes === "number") setLikes(data.likes);
+    if (typeof data.dislikes === "number") setDislikes(data.dislikes);
+    if (data.my_vote === "like" || data.my_vote === "dislike")
+      setMyVote(data.my_vote);
+    else setMyVote(null);
+  };
+
   useEffect(() => {
-    fetch(
-      `http://localhost:8000/api/likes/${pageSlug}/`,
-      token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
-    )
-      .then((r) => r.json())
-      .then((data) => {
-        if (typeof data.likes === "number") setLikes(data.likes);
-        if (typeof data.dislikes === "number") setDislikes(data.dislikes);
-        if (data.my_vote === "like" || data.my_vote === "dislike")
-          setMyVote(data.my_vote);
-        else setMyVote(null);
-      })
-      .catch(() => {});
-  }, [pageSlug, token]);
+    const fetchLikes = async () => {
+      try {
+        const currentToken = token;
+        const headers: HeadersInit = {};
+
+        if (currentToken) {
+          headers.Authorization = `Bearer ${currentToken}`;
+        }
+
+        const response = await fetch(
+          `http://localhost:8000/api/likes/${pageSlug}/`,
+          { headers },
+        );
+
+        if (response.status === 401 && token) {
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            const retryResponse = await fetch(
+              `http://localhost:8000/api/likes/${pageSlug}/`,
+              { headers: { Authorization: `Bearer ${newToken}` } },
+            );
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              updateLikesData(data);
+            }
+          }
+        } else if (response.ok) {
+          const data = await response.json();
+          updateLikesData(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch likes:", error);
+      }
+    };
+
+    fetchLikes();
+  }, [pageSlug, token, refreshAccessToken]);
 
   useEffect(() => {
     if (!token) return;
+
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${proto}://localhost:8000/ws/likes/${pageSlug}/?token=${token}`;
+    const host =
+      window.location.hostname === "localhost"
+        ? "localhost:8000"
+        : window.location.host;
+    const wsUrl = `${proto}://${host}/ws/likes/${pageSlug}/?token=${token}`;
+
     console.log("Connecting WS to", wsUrl);
     const ws = new WebSocket(wsUrl);
-
     wsRef.current = ws;
 
     ws.onopen = () => {
       console.log("WS connected");
     };
+
     ws.onerror = (err) => {
       console.error("WS error", err);
     };
+
     ws.onclose = (e) => {
       console.warn("WS closed", e);
       wsRef.current = null;
@@ -61,39 +99,19 @@ export default function LikeDislike({ slug }: Props) {
           if (typeof msg.likes === "number") setLikes(msg.likes);
           if (typeof msg.dislikes === "number") setDislikes(msg.dislikes);
         }
-      } catch {}
+      } catch (error) {
+        console.error("Failed to parse WS message:", error);
+      }
     };
 
-    return () => ws.close();
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
   }, [pageSlug, token]);
 
-  useEffect(() => {
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${proto}://localhost:8000/ws/test/`;
-    console.log("Connecting to WS:", wsUrl);
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      console.log("WS connected");
-      ws.send(JSON.stringify({ action: "ping" }));
-    };
-
-    ws.onmessage = (e) => {
-      console.log("WS message:", e.data);
-    };
-
-    ws.onerror = (err) => {
-      console.error("WS error", err);
-    };
-
-    ws.onclose = () => {
-      console.warn("WS closed");
-    };
-
-    return () => ws.close();
-  }, []);
-
-  const send = (action: "like" | "dislike") => {
+  const send = async (action: "like" | "dislike") => {
     if (!token) {
       alert("Войдите, чтобы голосовать");
       return;
@@ -101,26 +119,52 @@ export default function LikeDislike({ slug }: Props) {
 
     const ws = wsRef.current;
 
-    if (ws && ws.readyState === WebSocket.OPEN)
+    if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ action }));
-    else {
-      fetch(`http://localhost:8000/api/likes/${pageSlug}/`, {
-        method: "POST",
-        headers: {
+    } else {
+      try {
+        const currentToken = token;
+        const headers: HeadersInit = {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ action }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (typeof data.likes === "number") setLikes(data.likes);
-          if (typeof data.dislikes === "number") setDislikes(data.dislikes);
-          if (data.my_vote === "like" || data.my_vote === "dislike")
-            setMyVote(data.my_vote);
-          else setMyVote(null);
-        })
-        .catch(() => {});
+          Authorization: `Bearer ${currentToken}`,
+        };
+
+        const response = await fetch(
+          `http://localhost:8000/api/likes/${pageSlug}/`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ action }),
+          },
+        );
+
+        if (response.status === 401) {
+          const newToken = await refreshAccessToken();
+          if (newToken) {
+            const retryResponse = await fetch(
+              `http://localhost:8000/api/likes/${pageSlug}/`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${newToken}`,
+                },
+                body: JSON.stringify({ action }),
+              },
+            );
+
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              updateLikesData(data);
+            }
+          }
+        } else if (response.ok) {
+          const data = await response.json();
+          updateLikesData(data);
+        }
+      } catch (error) {
+        console.error("Failed to send vote:", error);
+      }
     }
   };
 

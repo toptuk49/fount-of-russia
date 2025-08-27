@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 export default function AuthModal({
@@ -33,7 +32,8 @@ export default function AuthModal({
       return "";
     },
     email: (v) => {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Введите корректный email";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+        return "Введите корректный email";
       return "";
     },
     password: (v) => {
@@ -60,7 +60,8 @@ export default function AuthModal({
       : ["username", "email", "password", "password2"];
     const newErrors: Record<string, string> = {};
     for (const f of fields) {
-      newErrors[f] = validators[f]?.(formData[f as keyof typeof formData] as string) ?? "";
+      newErrors[f] =
+        validators[f]?.(formData[f as keyof typeof formData] as string) ?? "";
     }
     setErrors((prev) => ({ ...prev, ...newErrors }));
     const touchedUpd: Record<string, boolean> = {};
@@ -93,9 +94,12 @@ export default function AuthModal({
     setLoading(true);
     try {
       const API_BASE =
-        (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE) ||
-        (typeof process !== "undefined" && (process as any).env?.REACT_APP_API_BASE) ||
-        ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+        (typeof import.meta !== "undefined" &&
+          (import.meta as any).env?.VITE_API_BASE) ||
+        (typeof process !== "undefined" &&
+          (process as any).env?.REACT_APP_API_BASE) ||
+        (window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
           ? "http://127.0.0.1:8000"
           : "");
 
@@ -124,9 +128,9 @@ export default function AuthModal({
       const data = await res.json();
 
       if (!res.ok) {
-        // собираем сообщения об ошибках с бэка, если они массив или объект
         if (typeof data === "object" && data !== null) {
-          const msg = Object.values(data).flat().join(" ") || "Ошибка авторизации";
+          const msg =
+            Object.values(data).flat().join(" ") || "Ошибка авторизации";
           throw new Error(msg);
         }
         throw new Error(data.detail || "Ошибка авторизации");
@@ -135,7 +139,6 @@ export default function AuthModal({
       if (data.access) localStorage.setItem("access", data.access);
       if (data.refresh) localStorage.setItem("refresh", data.refresh);
 
-      // сохраняем имя пользователя
       if (data.user?.name) {
         localStorage.setItem("username", data.user.name);
       } else if (data.name) {
@@ -158,15 +161,19 @@ export default function AuthModal({
       <div className="animate-scaleIn relative w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
         >
           ✕
         </button>
-        <h2 className="mb-4 text-2xl font-bold">{isLogin ? "Вход" : "Регистрация"}</h2>
+        <h2 className="mb-4 text-2xl font-bold">
+          {isLogin ? "Вход" : "Регистрация"}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
             <input
               type="email"
               value={formData.email}
@@ -174,12 +181,16 @@ export default function AuthModal({
               onBlur={() => handleBlur("email")}
               className={`mt-1 block w-full rounded-md border ${getInputClass("email")} p-2`}
             />
-            {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            )}
           </div>
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Имя пользователя</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Имя пользователя
+              </label>
               <input
                 type="text"
                 value={formData.username}
@@ -187,12 +198,16 @@ export default function AuthModal({
                 onBlur={() => handleBlur("username")}
                 className={`mt-1 block w-full rounded-md border ${getInputClass("username")} p-2`}
               />
-              {errors.username && <p className="mt-1 text-sm text-red-500">{errors.username}</p>}
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+              )}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Пароль</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Пароль
+            </label>
             <input
               type="password"
               value={formData.password}
@@ -200,12 +215,16 @@ export default function AuthModal({
               onBlur={() => handleBlur("password")}
               className={`mt-1 block w-full rounded-md border ${getInputClass("password")} p-2`}
             />
-            {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+            )}
           </div>
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Повторите пароль</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Повторите пароль
+              </label>
               <input
                 type="password"
                 value={formData.password2}
@@ -213,7 +232,9 @@ export default function AuthModal({
                 onBlur={() => handleBlur("password2")}
                 className={`mt-1 block w-full rounded-md border ${getInputClass("password2")} p-2`}
               />
-              {errors.password2 && <p className="mt-1 text-sm text-red-500">{errors.password2}</p>}
+              {errors.password2 && (
+                <p className="mt-1 text-sm text-red-500">{errors.password2}</p>
+              )}
             </div>
           )}
 
@@ -257,4 +278,3 @@ export default function AuthModal({
     </div>
   );
 }
-
