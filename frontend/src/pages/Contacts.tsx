@@ -10,7 +10,7 @@ export default function Contacts() {
     e.preventDefault();
     setStatus(null);
     try {
-      const res = await fetch("http://localhost:8000/api/contact/", {
+      const res = await fetch("http://localhost:8080/api/contact/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),
@@ -20,7 +20,9 @@ export default function Contacts() {
         throw new Error(err.detail || "Ошибка отправки");
       }
       setStatus("Сообщение отправлено!");
-      setName(""); setEmail(""); setMessage("");
+      setName("");
+      setEmail("");
+      setMessage("");
     } catch (err: any) {
       setStatus(err.message || "Не удалось отправить");
     }
@@ -53,7 +55,9 @@ export default function Contacts() {
           onChange={(e) => setMessage(e.target.value)}
           required
         />
-        <button className="rounded bg-black px-4 py-2 text-white">Отправить</button>
+        <button className="rounded bg-black px-4 py-2 text-white">
+          Отправить
+        </button>
       </form>
       {status && <p className="mt-3 text-sm opacity-80">{status}</p>}
     </div>
