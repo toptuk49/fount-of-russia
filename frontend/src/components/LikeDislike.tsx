@@ -35,18 +35,14 @@ export default function LikeDislike({ slug }: Props) {
           headers.Authorization = `Bearer ${currentToken}`;
         }
 
-        const response = await fetch(
-          `http://localhost:8000/api/likes/${pageSlug}/`,
-          { headers },
-        );
+        const response = await fetch(`/api/likes/${pageSlug}/`, { headers });
 
         if (response.status === 401 && token) {
           const newToken = await refreshAccessToken();
           if (newToken) {
-            const retryResponse = await fetch(
-              `http://localhost:8000/api/likes/${pageSlug}/`,
-              { headers: { Authorization: `Bearer ${newToken}` } },
-            );
+            const retryResponse = await fetch(`/api/likes/${pageSlug}/`, {
+              headers: { Authorization: `Bearer ${newToken}` },
+            });
             if (retryResponse.ok) {
               const data = await retryResponse.json();
               updateLikesData(data);
@@ -68,31 +64,19 @@ export default function LikeDislike({ slug }: Props) {
     if (!token) return;
 
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    const host =
-      window.location.hostname === "localhost"
-        ? "localhost:8000"
-        : window.location.host;
-    const wsUrl = `${proto}://${host}/ws/likes/${pageSlug}/?token=${token}`;
+    const wsUrl = `${proto}://${window.location.host}/ws/likes/${pageSlug}/?token=${token}`;
 
     console.log("Connecting WS to", wsUrl);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log("WS connected");
-    };
-
-    ws.onerror = (err) => {
-      console.error("WS error", err);
-    };
-
+    ws.onopen = () => console.log("WS connected");
+    ws.onerror = (err) => console.error("WS error", err);
     ws.onclose = (e) => {
       console.warn("WS closed", e);
       wsRef.current = null;
     };
-
     ws.onmessage = (e) => {
-      console.log("WS message", e.data);
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === "init" || msg.type === "update") {
@@ -129,30 +113,23 @@ export default function LikeDislike({ slug }: Props) {
           Authorization: `Bearer ${currentToken}`,
         };
 
-        const response = await fetch(
-          `http://localhost:8000/api/likes/${pageSlug}/`,
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ action }),
-          },
-        );
+        const response = await fetch(`/api/likes/${pageSlug}/`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ action }),
+        });
 
         if (response.status === 401) {
           const newToken = await refreshAccessToken();
           if (newToken) {
-            const retryResponse = await fetch(
-              `http://localhost:8000/api/likes/${pageSlug}/`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${newToken}`,
-                },
-                body: JSON.stringify({ action }),
+            const retryResponse = await fetch(`/api/likes/${pageSlug}/`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${newToken}`,
               },
-            );
-
+              body: JSON.stringify({ action }),
+            });
             if (retryResponse.ok) {
               const data = await retryResponse.json();
               updateLikesData(data);
@@ -172,13 +149,15 @@ export default function LikeDislike({ slug }: Props) {
     <div className="flex items-center gap-4">
       <button
         onClick={() => send("like")}
-        className={`flex items-center gap-2 rounded px-4 py-2 transition ${myVote === "like" ? "bg-green-300" : "bg-green-100 hover:bg-green-200"}`}
+        className={`flex items-center gap-2 rounded px-4 py-2 transition ${myVote === "like" ? "bg-green-300" : "bg-green-100 hover:bg-green-200"
+          }`}
       >
         👍 <span>{likes}</span>
       </button>
       <button
         onClick={() => send("dislike")}
-        className={`flex items-center gap-2 rounded px-4 py-2 transition ${myVote === "dislike" ? "bg-red-300" : "bg-red-100 hover:bg-red-200"}`}
+        className={`flex items-center gap-2 rounded px-4 py-2 transition ${myVote === "dislike" ? "bg-red-300" : "bg-red-100 hover:bg-red-200"
+          }`}
       >
         👎 <span>{dislikes}</span>
       </button>

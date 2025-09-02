@@ -15,7 +15,7 @@ export const useAuth = () => {
         return null;
       }
 
-      const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+      const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
       const response = await fetch(`${API_BASE}/api/auth/token/refresh/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

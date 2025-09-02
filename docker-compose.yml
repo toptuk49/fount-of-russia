@@ -1,55 +1,83 @@
 services:
-  backend:
-    build: ./backend
-    container_name: fount_backend
-    command: sh -c "python manage.py migrate && uvicorn backend.asgi:application --host 0.0.0.0 --port 8000 --reload"
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - db
-      - redis
-    environment:
-      - DEBUG=1
-      - POSTGRES_HOST=db
-      - REDIS_URL=redis://redis:6379/0
-      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - TZ=Europe/Moscow
-
-    networks:
-      - fount-network
-    develop:
-      watch:
-        - action: rebuild
-          path: ./backend
-
   db:
     image: postgres:16-alpine
-    container_name: fount_db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      TZ: Europe/Moscow
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - fount-network
+      POSTGRES_DB: fount
+      POSTGRES_USER: fount
+      POSTGRES_PASSWORD: fount
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fount -d fount"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: fount_redis
-    networks:
-      - fount-network
-    environment:
-      TZ: Europe/Moscow
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-networks:
-  fount-network:
-    driver: bridge
+  auth:
+    build: ./services/auth_service
+    environment:
+      SECRET_KEY: dev-secret
+      DEBUG: "1"
+      POSTGRES_DB: fount
+      POSTGRES_USER: fount
+      POSTGRES_PASSWORD: fount
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  likes:
+    build: ./services/likes_service
+    environment:
+      DJANGO_SETTINGS_MODULE: likes_service.settings
+      SECRET_KEY: dev-secret
+      DEBUG: "1"
+      POSTGRES_DB: fount
+      POSTGRES_USER: fount
+      POSTGRES_PASSWORD: fount
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  feedback:
+    build: ./services/feedback_service
+    environment:
+      SECRET_KEY: dev-secret-feedback
+      DEBUG: "1"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+    depends_on:
+      - db
+
+  gateway:
+    image: nginx:alpine
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth
+      - likes
+      - feedback
 
 volumes:
-  pgdata:
+  dbdata_micro:
