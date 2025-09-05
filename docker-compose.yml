@@ -37,6 +37,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    develop:
+      watch:
+        - path: ./services/auth_service
+          action: rebuild
+          target: /app
 
   likes:
     build: ./services/likes_service
@@ -57,6 +62,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    develop:
+      watch:
+        - path: ./services/likes_service
+          action: rebuild
+          target: /app
 
   feedback:
     build: ./services/feedback_service
@@ -67,6 +77,11 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
     depends_on:
       - db
+    develop:
+      watch:
+        - path: ./services/feedback_service
+          action: rebuild
+          target: /app
 
   gateway:
     image: nginx:alpine
@@ -85,6 +100,11 @@ services:
       - auth
       - likes
       - feedback
+    develop:
+      watch:
+        - path: ./frontend
+          action: rebuild
+          target: /app
 
 volumes:
   dbdata_micro:
