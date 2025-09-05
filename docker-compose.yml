@@ -79,5 +79,12 @@ services:
       - likes
       - feedback
 
+  frontend:
+    build: ./frontend
+    depends_on:
+      - auth
+      - likes
+      - feedback
+
 volumes:
   dbdata_micro:
