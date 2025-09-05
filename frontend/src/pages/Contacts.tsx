@@ -10,7 +10,7 @@ export default function Contacts() {
     e.preventDefault();
     setStatus(null);
     try {
-      const res = await fetch("http://localhost:8080/api/contact/", {
+      const res = await fetch("/api/contacts/contact/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),
