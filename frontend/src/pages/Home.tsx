@@ -21,11 +21,11 @@ export default function Home() {
           </div>
           <div className="p-6">
             <h2 className="mb-2 text-2xl font-semibold">
-              Название твоей статьи
+              Дорога мужества. Осколяночка
             </h2>
             <p className="mb-4 text-gray-600">
-              Краткое описание статьи, чтобы заинтересовать читателя и
-              пригласить прочитать полный текст.
+              История невероятного подвига: как за 32 дня была построена
+              стратегическая железная дорога Старый Оскол - Ржава.
             </p>
             <span className="inline-block font-medium text-blue-600">
               Читать →

@@ -25,19 +25,19 @@ export default function Header() {
       <header className="bg-white shadow-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           {/* Логотип */}
-          <Link to="/" className="text-2xl font-bold text-blue-600">
-            Кладезь России
+          <Link to="/" className="">
+            <img src="/logo.png" alt="Кладезь России" className="w-32" />
           </Link>
 
           {/* Навигация */}
           <nav className="hidden space-x-6 md:flex">
-            <Link to="/" className="transition hover:text-blue-600">
+            <Link to="/" className="transition hover:text-red-600">
               Главная
             </Link>
-            <Link to="/about" className="transition hover:text-blue-600">
+            <Link to="/about" className="transition hover:text-red-600">
               О проекте
             </Link>
-            <Link to="/contacts" className="transition hover:text-blue-600">
+            <Link to="/contacts" className="transition hover:text-red-600">
               Контакты
             </Link>
           </nav>
@@ -57,7 +57,7 @@ export default function Header() {
             ) : (
               <button
                 onClick={() => setAuthOpen(true)}
-                className="rounded bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+                className="cursor-pointer rounded bg-red-600 px-4 py-2 text-white transition hover:bg-red-700"
               >
                 Войти
               </button>
