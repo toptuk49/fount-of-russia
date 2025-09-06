@@ -8,7 +8,7 @@ export default function MainLayout() {
       <main className="flex-grow">
         <Outlet />
       </main>
-      <footer className="bg-gray-800 p-4 text-center text-white">
+      <footer className="bg-red-600 p-4 text-center text-white">
         Copyright © 2025 Кладезь России. Все права защищены.
       </footer>
     </div>
